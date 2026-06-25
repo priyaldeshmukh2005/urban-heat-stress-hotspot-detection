@@ -321,6 +321,38 @@ except FileNotFoundError as error:
 
 
 # ==================================================
+# CONSISTENT COLOURS, LEGENDS AND UNITS
+# ==================================================
+
+HEAT_COLOR_MAP = {
+    "Low": "#f6c64b",
+    "Moderate": "#ff9a22",
+    "High": "#f0522d",
+    "Very High": "#a91f26"
+}
+
+VULNERABILITY_COLOR_MAP = {
+    "Low": "#f6c64b",
+    "Moderate": "#ff9a22",
+    "High": "#f0522d",
+    "Very High": "#a91f26"
+}
+
+INTERVENTION_COLOR_MAP = {
+    "Urban greening": "#4f7d50",
+    "Cool/permeable surfaces": "#4d83b8"
+}
+
+HEAT_CATEGORY_ORDER = ["Low", "Moderate", "High", "Very High"]
+
+MAP_LEGEND_TITLES = {
+    "Heat_Category": "Heat Stress Level",
+    "Vulnerability_Category": "Vulnerability Level",
+    "Recommended_Intervention": "Recommended Strategy"
+}
+
+
+# ==================================================
 # HELPER FUNCTIONS
 # ==================================================
 
@@ -333,6 +365,30 @@ def get_kpi_value(kpi_dict, possible_names, default=0):
 
 def clean_map_columns(dataframe, columns_to_keep):
     return [column for column in columns_to_keep if column in dataframe.columns]
+
+
+def format_hover_labels(hover_columns):
+    label_map = {
+        "Observed_LST_C": "Observed LST (°C)",
+        "Predicted_LST_C": "Predicted LST (°C)",
+        "Baseline_Predicted_LST_C": "Baseline Predicted LST (°C)",
+        "Greening_Cooling_C": "+20% Green Cover Change (°C)",
+        "Cool_Surface_Cooling_C": "Cool/Permeable Surface Change (°C)",
+        "Best_Cooling_C": "Best Predicted LST Change (°C)",
+        "NDVI": "NDVI",
+        "NDBI": "NDBI",
+        "Population": "Population Exposure",
+        "LandCover_Class": "Land Cover",
+        "Zone_ID": "Zone ID",
+        "Heat_Hazard_Score": "Heat Hazard Score",
+        "Population_Exposure_Score": "Population Exposure Score",
+        "Heat_Vulnerability_Index": "Heat Vulnerability Index"
+    }
+
+    return {
+        column: label_map.get(column, column.replace("_", " "))
+        for column in hover_columns
+    }
 
 
 def style_map(fig, zoom=11.2):
@@ -348,8 +404,7 @@ def style_map(fig, zoom=11.2):
         plot_bgcolor="rgba(0,0,0,0)",
         font_color="#2f1d1a",
         legend=dict(
-            title="",
-            bgcolor="rgba(255,253,249,0.88)",
+            bgcolor="rgba(255,253,249,0.92)",
             bordercolor="#ead6ca",
             borderwidth=1,
             font=dict(size=11),
@@ -384,33 +439,64 @@ def make_small_clean_map(
     color_column,
     hover_columns,
     title,
-    color_sequence=None,
-    color_map=None,
+    color_map,
     height=600
 ):
+    map_data = dataframe.copy()
+
+    # Keeps map readable while tables/KPIs still use the full dataset.
+    if len(map_data) > 2500:
+        map_data = map_data.sample(n=2500, random_state=42)
+
+    category_order = HEAT_CATEGORY_ORDER if color_column in [
+        "Heat_Category",
+        "Vulnerability_Category"
+    ] else None
+
     fig = px.scatter_mapbox(
-        dataframe,
+        map_data,
         lat="Latitude",
         lon="Longitude",
         color=color_column,
         hover_data=hover_columns,
+        labels=format_hover_labels(hover_columns),
         zoom=11.2,
         height=height,
         title=title,
-        color_discrete_sequence=color_sequence,
-        color_discrete_map=color_map
+        color_discrete_map=color_map,
+        category_orders={
+            color_column: category_order
+        } if category_order else None
     )
 
-    # IMPORTANT:
-    # scatter_mapbox marker does NOT support marker.line.
+    # scatter_mapbox does not support marker.line.
     fig.update_traces(
         marker=dict(
-            size=7,
-            opacity=0.68
+            size=6,
+            opacity=0.64
+        )
+    )
+
+    fig.update_layout(
+        legend_title_text=MAP_LEGEND_TITLES.get(
+            color_column,
+            color_column.replace("_", " ")
         )
     )
 
     return style_map(fig, zoom=11.2)
+
+
+def get_scenario_display_name(scenario_name):
+    scenario_lower = str(scenario_name).lower()
+
+    if "green" in scenario_lower or "vegetation" in scenario_lower:
+        return "🌿 +20% Green Cover"
+
+    if "cool" in scenario_lower or "permeable" in scenario_lower:
+        return "🏙️ Cool / Permeable Surface"
+
+    return str(scenario_name)
 
 
 # ==================================================
@@ -533,6 +619,22 @@ if page == "Project Overview":
         unsafe_allow_html=True
     )
 
+    st.markdown(
+        """
+        <div class="section-panel">
+            <div class="section-title">🧭 How to Use This Dashboard</div>
+            <ol style="margin-bottom:0; padding-left:22px; line-height:1.85;">
+                <li><b>Locate heat stress:</b> use Urban Heat Hotspots to identify High and Very High heat zones.</li>
+                <li><b>Prioritize people at risk:</b> open Heat Vulnerability to find areas where heat overlaps with population exposure.</li>
+                <li><b>Understand why:</b> review Heat Drivers to see which variables most influence predicted land surface temperature.</li>
+                <li><b>Compare interventions:</b> use Cooling Strategy to compare +20% green cover and cool/permeable-surface scenarios.</li>
+                <li><b>Verify before implementation:</b> use priority-zone tables for field assessment, cost review, and municipal planning.</li>
+            </ol>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
     kpi_values = dict(zip(kpis["Metric"], kpis["Value"]))
 
     r2_value = float(get_kpi_value(
@@ -585,7 +687,10 @@ if page == "Project Overview":
         st.markdown('<div class="section-panel">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">🔥 Urban Heat Hotspots</div>', unsafe_allow_html=True)
 
-        heat_options = sorted(hotspot_map["Heat_Category"].dropna().astype(str).unique())
+        heat_options = [
+            category for category in HEAT_CATEGORY_ORDER
+            if category in hotspot_map["Heat_Category"].dropna().astype(str).unique()
+        ]
 
         selected_heat = st.multiselect(
             "Filter heat-stress categories",
@@ -616,8 +721,8 @@ if page == "Project Overview":
                 dataframe=filtered_hotspots,
                 color_column="Heat_Category",
                 hover_columns=hover_columns,
-                title="Urban Heat Hotspots",
-                color_sequence=["#f6c64b", "#ff9a22", "#f0522d", "#a91f26"],
+                title="Urban Heat Hotspots | Land Surface Temperature (°C)",
+                color_map=HEAT_COLOR_MAP,
                 height=430
             )
 
@@ -637,6 +742,7 @@ if page == "Project Overview":
                 hotspot_map["Heat_Category"]
                 .astype(str)
                 .value_counts()
+                .reindex(HEAT_CATEGORY_ORDER, fill_value=0)
                 .reset_index()
             )
             heat_counts.columns = ["Heat Category", "Count"]
@@ -647,12 +753,8 @@ if page == "Project Overview":
                 values="Count",
                 hole=0.64,
                 color="Heat Category",
-                color_discrete_sequence=[
-                    "#f6c64b",
-                    "#ff9a22",
-                    "#f0522d",
-                    "#a91f26"
-                ]
+                color_discrete_map=HEAT_COLOR_MAP,
+                category_orders={"Heat Category": HEAT_CATEGORY_ORDER}
             )
 
             fig.update_traces(
@@ -673,7 +775,7 @@ if page == "Project Overview":
                 font_color="#2f1d1a",
                 showlegend=True,
                 legend=dict(
-                    title="",
+                    title="Heat Stress Level",
                     orientation="v",
                     x=1.02,
                     y=0.5,
@@ -719,7 +821,8 @@ if page == "Project Overview":
         fig.update_layout(
             coloraxis_showscale=False,
             height=330,
-            title=""
+            title="",
+            xaxis_title="Mean Absolute SHAP Value"
         )
 
         st.plotly_chart(style_chart(fig), use_container_width=True)
@@ -727,18 +830,25 @@ if page == "Project Overview":
 
     with col_b:
         st.markdown('<div class="section-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="section-title">❄️ Cooling Potential (°C)</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="section-title">❄️ Scenario-Based Predicted LST Change (°C)</div>',
+            unsafe_allow_html=True
+        )
 
         if len(scenario_summary) > 0:
             for _, row in scenario_summary.iterrows():
                 scenario_name = str(row["Scenario"])
                 cooling_value = float(row["Mean_Cooling_C"])
+                display_name = get_scenario_display_name(scenario_name)
 
-                if "Green" in scenario_name or "Vegetation" in scenario_name:
+                if "green" in scenario_name.lower() or "vegetation" in scenario_name.lower():
                     st.markdown(
                         f"""
                         <div class="cool-note">
-                            <b>🌿 {scenario_name}</b><br>
+                            <b>{display_name}</b><br>
+                            <span style="font-size:0.88rem;">
+                                Predicted LST change from baseline
+                            </span><br>
                             <span style="font-size:1.35rem; font-weight:850;">
                                 {cooling_value:.3f} °C
                             </span>
@@ -758,7 +868,10 @@ if page == "Project Overview":
                             margin:10px 0 20px 0;
                             color:#244d7c;
                         ">
-                            <b>🏙️ {scenario_name}</b><br>
+                            <b>{display_name}</b><br>
+                            <span style="font-size:0.88rem;">
+                                Predicted LST change from baseline
+                            </span><br>
                             <span style="font-size:1.35rem; font-weight:850;">
                                 {cooling_value:.3f} °C
                             </span>
@@ -773,7 +886,20 @@ if page == "Project Overview":
         """
         <div class="info-note">
             <b>💡 Planning insight:</b> use hotspot intensity, vulnerability level,
-            and scenario cooling potential together to prioritize interventions.
+            and scenario-based predicted LST change together to prioritize interventions.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <div class="risk-note">
+            <b>Decision-support disclaimer:</b> predicted LST changes are model-based,
+            scenario-specific planning estimates. They support comparison and prioritization,
+            but are not guaranteed real-world temperature outcomes. Field verification,
+            site feasibility, costs, land availability, and local design conditions must be
+            assessed before implementation.
         </div>
         """,
         unsafe_allow_html=True
@@ -792,16 +918,19 @@ elif page == "Urban Heat Hotspots":
         """
         <div class="heat-note">
             <b>Purpose:</b> identify locations with elevated observed land surface
-            temperature and prioritize concentrated hotspot zones for intervention.
+            temperature (LST, °C) and prioritize concentrated hotspot zones for intervention.
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    heat_options = sorted(hotspot_map["Heat_Category"].dropna().astype(str).unique())
+    heat_options = [
+        category for category in HEAT_CATEGORY_ORDER
+        if category in hotspot_map["Heat_Category"].dropna().astype(str).unique()
+    ]
 
     selected_heat = st.multiselect(
-        "Select heat categories",
+        "Select heat-stress categories",
         options=heat_options,
         default=heat_options,
         key="hotspot_heat_filter"
@@ -829,8 +958,8 @@ elif page == "Urban Heat Hotspots":
             dataframe=filtered_hotspots,
             color_column="Heat_Category",
             hover_columns=hover_columns,
-            title="Urban Heat-Stress Distribution",
-            color_sequence=["#f6c64b", "#ff9a22", "#f0522d", "#a91f26"],
+            title="Urban Heat-Stress Distribution | LST (°C)",
+            color_map=HEAT_COLOR_MAP,
             height=610
         )
 
@@ -855,7 +984,7 @@ elif page == "Heat Drivers":
         """
         <div class="info-note">
             <b>Purpose:</b> understand which environmental and urban features most
-            strongly influence predicted land surface temperature in the XGBoost model.
+            strongly influence predicted land surface temperature (LST, °C) in the XGBoost model.
         </div>
         """,
         unsafe_allow_html=True
@@ -878,7 +1007,8 @@ elif page == "Heat Drivers":
 
     fig.update_layout(
         coloraxis_showscale=False,
-        height=500
+        height=500,
+        xaxis_title="Mean Absolute SHAP Value"
     )
 
     st.plotly_chart(style_chart(fig), use_container_width=True)
@@ -920,9 +1050,10 @@ elif page == "Heat Vulnerability":
         unsafe_allow_html=True
     )
 
-    vulnerability_options = sorted(
-        vulnerability_map["Vulnerability_Category"].dropna().astype(str).unique()
-    )
+    vulnerability_options = [
+        category for category in HEAT_CATEGORY_ORDER
+        if category in vulnerability_map["Vulnerability_Category"].dropna().astype(str).unique()
+    ]
 
     selected_vulnerability = st.multiselect(
         "Select vulnerability categories",
@@ -953,8 +1084,8 @@ elif page == "Heat Vulnerability":
             dataframe=filtered_vulnerability,
             color_column="Vulnerability_Category",
             hover_columns=hover_columns,
-            title="Population-Aware Heat Vulnerability",
-            color_sequence=["#f6c64b", "#ffad4d", "#ed7358", "#a91f26"],
+            title="Population-Aware Heat Vulnerability | Predicted LST (°C)",
+            color_map=VULNERABILITY_COLOR_MAP,
             height=610
         )
 
@@ -978,24 +1109,26 @@ elif page == "Cooling Strategy":
     st.markdown(
         """
         <div class="cool-note">
-            <b>Purpose:</b> compare predicted cooling effects from intervention scenarios
-            and identify the best cooling strategy for each location.
+            <b>Purpose:</b> compare scenario-based predicted LST changes (°C) and identify
+            the most suitable cooling strategy for each location.
         </div>
         """,
         unsafe_allow_html=True
     )
 
+    scenario_chart_data = scenario_summary.copy()
+    scenario_chart_data["Scenario_Display"] = scenario_chart_data["Scenario"].apply(
+        get_scenario_display_name
+    )
+
     fig = px.bar(
-        scenario_summary,
-        x="Scenario",
+        scenario_chart_data,
+        x="Scenario_Display",
         y="Mean_Cooling_C",
         text="Mean_Cooling_C",
-        title="Cooling Potential by Strategy",
+        title="Scenario-Based Predicted LST Change from Baseline",
         color="Scenario",
-        color_discrete_map={
-            "Urban greening": "#4f7d50",
-            "Cool/permeable surfaces": "#4d83b8"
-        }
+        color_discrete_map=INTERVENTION_COLOR_MAP
     )
 
     fig.update_traces(
@@ -1007,8 +1140,8 @@ elif page == "Cooling Strategy":
     fig.update_layout(
         showlegend=False,
         height=380,
-        yaxis_title="Predicted Cooling (°C)",
-        xaxis_title=""
+        yaxis_title="Predicted LST Change (°C)",
+        xaxis_title="Cooling Intervention Scenario"
     )
 
     st.plotly_chart(style_chart(fig), use_container_width=True)
@@ -1047,15 +1180,11 @@ elif page == "Cooling Strategy":
             dataframe=filtered_scenarios,
             color_column="Recommended_Intervention",
             hover_columns=hover_columns,
-            title="Recommended Cooling Intervention by Location",
-            color_map={
-                "Urban greening": "#4f7d50",
-                "Cool/permeable surfaces": "#4d83b8"
-            },
+            title="Recommended Cooling Strategy by Location",
+            color_map=INTERVENTION_COLOR_MAP,
             height=610
         )
 
-        # Smaller and more transparent cooling points
         fig.update_traces(
             marker=dict(
                 size=6,
@@ -1071,9 +1200,17 @@ elif page == "Cooling Strategy":
     st.subheader("Top Zones by Cooling Potential")
     st.dataframe(intervention_zones, use_container_width=True, hide_index=True)
 
-    st.warning(
-        "Cooling values are model-based comparative estimates. Final intervention "
-        "selection should also consider cost, land availability, feasibility, and field validation."
+    st.markdown(
+        """
+        <div class="risk-note">
+            <b>Decision-support disclaimer:</b> “+20% green cover” and cool/permeable-surface
+            outputs represent model-based predicted LST changes from the baseline scenario.
+            They are planning estimates, not guaranteed real-world cooling outcomes.
+            Final implementation requires field verification, engineering design, cost analysis,
+            land-availability assessment, and municipal feasibility review.
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
@@ -1173,6 +1310,18 @@ elif page == "About Project":
             - Heat vulnerability priority zones  
             """
         )
+
+    st.markdown(
+        """
+        <div class="risk-note">
+            <b>Limitations:</b> satellite-derived LST is not the same as near-surface air
+            temperature. Population is used as an exposure proxy, and scenario outputs are
+            decision-support estimates. Field validation and local feasibility assessment are
+            required before implementation.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     st.subheader("Team AstroByte")
     st.markdown(
