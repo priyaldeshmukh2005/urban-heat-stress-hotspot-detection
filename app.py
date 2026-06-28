@@ -640,7 +640,7 @@ with header_right:
             """
             <div class="top-info-card">
                 <div class="top-info-label">📅 Year</div>
-                <div class="top-info-value">2026</div>
+                <div class="top-info-value">2025</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -2032,7 +2032,7 @@ Adjust the intervention sliders and click
 to generate a real-time AI prediction using the trained XGBoost model.
 """
         )
-                # ==========================================================
+        # ==========================================================
         # ADDITIONAL ANALYTICS
         # ==========================================================
 

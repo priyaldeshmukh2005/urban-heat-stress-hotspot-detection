@@ -13,7 +13,7 @@ The system integrates satellite-derived environmental indicators with explainabl
 
 Deployed Streamlit application:
 
-https://urban-heat-stress-hotspot-detection-hxyycd4fe98eq67h3raq8u.streamlit.app/
+https://urban-heat-stress-hotspot-detection-hseepes29gv24nfc28jmgx.streamlit.app/
 
 The dashboard provides interactive views of urban heat hotspots, heat drivers, vulnerability, intervention scenarios, model validation, and priority zones.
 
