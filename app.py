@@ -506,7 +506,7 @@ def get_scenario_display_name(scenario_name):
 # ==================================================
 
 st.sidebar.markdown("## ☀️ UrbanHeat AI")
-st.sidebar.caption("Heat to Cool Strategy")
+st.sidebar.caption("AI Cooling Intervention Simulator")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### Navigation")
@@ -518,7 +518,7 @@ page = st.sidebar.radio(
         "Urban Heat Hotspots",
         "Heat Drivers",
         "Heat Vulnerability",
-        "Cooling Strategy",
+        "AI Cooling Intervention Simulator",
         "Model Validation",
         "About Project"
     ]
@@ -629,7 +629,7 @@ if page == "Project Overview":
                 <li><b>Locate heat stress:</b> use Urban Heat Hotspots to identify High and Very High heat zones.</li>
                 <li><b>Prioritize people at risk:</b> open Heat Vulnerability to find areas where heat overlaps with population exposure.</li>
                 <li><b>Understand why:</b> review Heat Drivers to see which variables most influence predicted land surface temperature.</li>
-                <li><b>Compare interventions:</b> use Cooling Strategy to compare +20% green cover and cool/permeable-surface scenarios.</li>
+                <li><b>Compare interventions:</b> use AI Cooling Intervention Simulator to compare +20% green cover and cool/permeable-surface scenarios..</li>
                 <li><b>Verify before implementation:</b> use priority-zone tables for field assessment, cost review, and municipal planning.</li>
             </ol>
         </div>
@@ -1101,10 +1101,10 @@ elif page == "Heat Vulnerability":
 
 
 # ==================================================
-# COOLING STRATEGY
+# AI Cooling Intervention Simulator
 # ==================================================
 
-elif page == "Cooling Strategy":
+elif page == "AI Cooling Intervention Simulator":
 
     st.header("🛰 AI Cooling Intervention Simulator")
 
