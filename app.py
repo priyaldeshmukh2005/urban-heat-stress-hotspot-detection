@@ -5,13 +5,14 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from pathlib import Path
+import plotly.graph_objects as go
 
 # ==================================================
 # PAGE CONFIG
 # ==================================================
 
 st.set_page_config(
-    page_title="Urban Heat Mitigation and Cooling Strategy Optimization",
+    page_title="Urban Heat AI Dashboard",
     page_icon="🌡️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -210,7 +211,7 @@ st.markdown(
         }
 
         [data-testid="stMetricValue"] {
-            color: #b82025 !important;
+            color:  #b82025 !important;
             font-weight: 850;
         }
 
@@ -564,7 +565,7 @@ st.sidebar.markdown(
         </div>
         <br>
         <div class="sidebar-study-value">
-            Year: 2025<br>
+            Year: 2026<br>
             Data: Sentinel-2 + Landsat 8/9<br>
             Model: XGBoost
         </div>
@@ -639,7 +640,7 @@ with header_right:
             """
             <div class="top-info-card">
                 <div class="top-info-label">📅 Year</div>
-                <div class="top-info-value">2025</div>
+                <div class="top-info-value">2026</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -930,8 +931,7 @@ if page == "Project Overview":
     st.markdown(
         """
         <div class="info-note">
-            <b>💡 Planning insight:</b> use hotspot intensity, vulnerability level,
-            and scenario-based predicted LST change together to prioritize interventions.
+            <b>💡 Planning insight:</b> Integrate hotspot intensity, vulnerability level, and scenario-based AI predictions to prioritize high-impact urban heat mitigation strategies.
         </div>
         """,
         unsafe_allow_html=True
@@ -940,11 +940,8 @@ if page == "Project Overview":
     st.markdown(
         """
         <div class="risk-note">
-            <b>Decision-support disclaimer:</b> predicted LST changes are model-based,
-            scenario-specific planning estimates. They support comparison and prioritization,
-            but are not guaranteed real-world temperature outcomes. Field verification,
-            site feasibility, costs, land availability, and local design conditions must be
-            assessed before implementation.
+            <b>Decision-support disclaimer:</b> Predicted LST changes are AI model–based, scenario-specific planning estimates intended to support comparison and prioritization of urban heat mitigation strategies. Actual outcomes may vary due to local environmental conditions, implementation quality, land availability, engineering feasibility, and site-specific factors. Field verification and detailed technical assessment should be completed before implementation.
+
         </div>
         """,
         unsafe_allow_html=True
@@ -955,14 +952,15 @@ if page == "Project Overview":
 # URBAN HEAT HOTSPOTS
 # ==================================================
 
+
 elif page == "Urban Heat Hotspots":
 
-    st.header("Urban Heat Hotspots")
+    st.header("🔥Urban Heat Hotspots")
 
     st.markdown(
         """
         <div class="heat-note">
-            <b>Purpose:</b> identify locations with elevated observed land surface
+            <b>Purpose:</b> Identify locations with elevated observed land surface
             temperature (LST, °C) and prioritize concentrated hotspot zones for intervention.
         </div>
         """,
@@ -1023,12 +1021,12 @@ elif page == "Urban Heat Hotspots":
 
 elif page == "Heat Drivers":
 
-    st.header("Heat Drivers and Explainable AI")
+    st.header("📊Heat Drivers and Explainable AI")
 
     st.markdown(
         """
         <div class="info-note">
-            <b>Purpose:</b> understand which environmental and urban features most
+            <b>Purpose:</b> Understand which environmental and urban features most
             strongly influence predicted land surface temperature (LST, °C) in the XGBoost model.
         </div>
         """,
@@ -1082,14 +1080,13 @@ elif page == "Heat Drivers":
 
 elif page == "Heat Vulnerability":
 
-    st.header("Heat Vulnerability")
+    st.header("⚠️ Heat Vulnerability")
 
     st.markdown(
         """
         <div class="risk-note">
-            <b>Purpose:</b> prioritize areas where predicted heat hazard overlaps with
-            higher population exposure. The hottest location is not always the most
-            vulnerable location.
+            <b>Purpose:</b> Prioritize areas where high predicted heat hazard overlaps with greater population exposure. The hottest location is not necessarily the most vulnerable, making both heat intensity and exposure essential for effective intervention planning.
+
         </div>
         """,
         unsafe_allow_html=True
@@ -1155,8 +1152,7 @@ elif page == "AI Cooling Intervention Simulator":
         """
         <div class="cool-note">
         This simulator performs <b>real-time AI prediction</b> using the trained
-        XGBoost model. Instead of applying fixed temperature reductions, it modifies
-        urban environmental indicators based on the selected interventions and
+        XGBoost model. Instead of applying fixed temperature reductions, it dynamically modifies satellite-derived urban indicators and
         predicts the updated Land Surface Temperature (LST) through model inference.
         </div>
         """,
@@ -1322,9 +1318,9 @@ elif page == "AI Cooling Intervention Simulator":
         # ==========================================================
 
         ndvi_increase = (
-            green_cover * 0.0025
-            + tree_cover * 0.0035
-            + permeable_surface * 0.0010
+            green_cover * 0.0050
+            + tree_cover * 0.0070
+            + permeable_surface * 0.0020
         )
 
         simulated["NDVI"] = clip(
@@ -1338,9 +1334,9 @@ elif page == "AI Cooling Intervention Simulator":
         # ==========================================================
 
         ndbi_decrease = (
-            builtup_reduction * 0.0020
-            + green_cover * 0.0010
-            + tree_cover * 0.0010
+            builtup_reduction * 0.0045
+            + green_cover * 0.0008
+            + tree_cover * 0.0004
         )
 
         simulated["NDBI"] = clip(
@@ -1355,8 +1351,8 @@ elif page == "AI Cooling Intervention Simulator":
 
         simulated["LandCover_Tree cover"] = clip(
             simulated["LandCover_Tree cover"]
-            + tree_cover * 0.004
-            + green_cover * 0.002,
+            + tree_cover * 0.002
+            + green_cover * 0.010,
             0,
             None,
         )
@@ -1481,12 +1477,12 @@ elif page == "AI Cooling Intervention Simulator":
             simulated_df["LST_Before"]
             .apply(classify_hotspot)
         )
-
         simulated_df["Hotspot_After"] = (
             simulated_df["LST_After"]
             .apply(classify_hotspot)
         )
 
+      
         avg_before = simulated_df["LST_Before"].mean()
         avg_after = simulated_df["LST_After"].mean()
 
@@ -1494,25 +1490,31 @@ elif page == "AI Cooling Intervention Simulator":
         max_after = simulated_df["LST_After"].max()
 
         reduction = avg_before - avg_after
+        HIGH_RISK = ["Very High", "Extreme"]
 
         hotspots_before = (
-            simulated_df["Hotspot_Before"] != "Low"
-        ).sum()
+            simulated_df["Hotspot_Before"]
+            .isin(HIGH_RISK)
+            .sum()
+        )
 
         hotspots_after = (
-            simulated_df["Hotspot_After"] != "Low"
-        ).sum()
+            simulated_df["Hotspot_After"]
+            .isin(HIGH_RISK)
+            .sum()
+        )
 
-        if hotspots_before == 0:
-
-            improvement = 0
-
-        else:
+        if hotspots_before > 0:
 
             improvement = (
                 (hotspots_before - hotspots_after)
                 / hotspots_before
             ) * 100
+
+        else:
+
+            improvement = 0
+            
         # ==========================================================
         # KPI DASHBOARD
         # ==========================================================
@@ -1548,17 +1550,17 @@ elif page == "AI Cooling Intervention Simulator":
         kpi5, kpi6, kpi7 = st.columns(3)
 
         kpi5.metric(
-            "Hotspots Before",
+            " Priority Hotspots Before",
             int(hotspots_before)
         )
 
         kpi6.metric(
-            "Hotspots After",
+            " Priority Hotspots After",
             int(hotspots_after)
         )
 
         kpi7.metric(
-            "Overall Improvement",
+            "Priority Hotspot Reduction",
             f"{improvement:.1f}%"
         )
 
@@ -1567,50 +1569,59 @@ elif page == "AI Cooling Intervention Simulator":
         # ==========================================================
         # BEFORE VS AFTER COMPARISON
         # ==========================================================
-
         st.subheader("📈 Average Land Surface Temperature Comparison")
 
-        comparison_df = pd.DataFrame(
-            {
-                "Scenario": [
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Bar(
+                x=[
                     "Before Intervention",
                     "After Intervention"
                 ],
-                "Average LST": [
+                y=[
                     avg_before,
                     avg_after
-                ]
-            }
-        )
-
-        fig = px.bar(
-            comparison_df,
-            x="Scenario",
-            y="Average LST",
-            color="Scenario",
-            text="Average LST",
-            template="plotly_white",
-            color_discrete_sequence=[
-                "#E4572E",
-                "#2E8B57"
-            ]
-        )
-
-        fig.update_traces(
-            texttemplate="%.2f °C",
-            textposition="outside"
+                ],
+                marker_color=[
+                    "#E4572E",
+                    "#2E8B57"
+                ],
+                text=[
+                    f"{avg_before:.2f}°C",
+                    f"{avg_after:.2f}°C"
+                ],
+                textposition="outside",
+                hovertemplate="<b>%{x}</b><br>Average LST: %{y:.2f}°C<extra></extra>"
+            )
         )
 
         fig.update_layout(
             height=470,
+            template="plotly_white",
             showlegend=False,
             xaxis_title="",
-            yaxis_title="Average LST (°C)"
+            yaxis_title="Average LST (°C)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="#fffdf9",
+            font_color="#2f1d1a"
+        )
+
+        fig.update_xaxes(
+            gridcolor="#f0e0d7"
+        )
+
+        fig.update_yaxes(
+            gridcolor="#f0e0d7"
         )
 
         st.plotly_chart(
-            style_chart(fig),
-            use_container_width=True
+            fig,
+            use_container_width=True,
+            config={
+                "displaylogo": False,
+                "displayModeBar": False
+            }
         )
 
         # ==========================================================
@@ -1619,28 +1630,47 @@ elif page == "AI Cooling Intervention Simulator":
 
         st.subheader("📉 Pixel-wise Temperature Reduction")
 
-        fig = px.histogram(
-            simulated_df,
-            x="Temperature_Reduction",
-            nbins=40,
-            template="plotly_white",
-            color_discrete_sequence=[
-                "#4F7D50"
-            ]
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Histogram(
+                x=simulated_df["Temperature_Reduction"],
+                nbinsx=40,
+                marker_color="#4F7D50",
+                hovertemplate="Temperature Reduction: %{x:.2f}°C<br>Pixels: %{y}<extra></extra>"
+            )
         )
 
         fig.update_layout(
             height=420,
+            template="plotly_white",
+            showlegend=False,
             xaxis_title="Temperature Reduction (°C)",
-            yaxis_title="Number of Pixels"
+            yaxis_title="Number of Pixels",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="#fffdf9",
+            font_color="#2f1d1a"
+        )
+
+        fig.update_xaxes(
+            gridcolor="#f0e0d7"
+        )
+
+        fig.update_yaxes(
+            gridcolor="#f0e0d7"
         )
 
         st.plotly_chart(
-            style_chart(fig),
-            use_container_width=True
+            fig,
+            use_container_width=True,
+            config={
+                "displaylogo": False,
+                "displayModeBar": False
+            }
         )
 
         st.markdown("---")
+
         # ==========================================================
         # AI HOTSPOT MAP
         # ==========================================================
@@ -1793,29 +1823,60 @@ elif page == "AI Cooling Intervention Simulator":
             "After"
         ]
 
-        fig = px.bar(
-            hotspot_summary,
-            x="Hotspot Category",
-            y=[
-                "Before",
-                "After"
-            ],
-            barmode="group",
-            template="plotly_white",
-            color_discrete_sequence=[
-                "#E4572E",
-                "#4F7D50"
-            ]
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Bar(
+                name="Before",
+                x=hotspot_summary["Hotspot Category"],
+                y=hotspot_summary["Before"],
+                marker_color="#E4572E",
+                hovertemplate="<b>Before</b><br>%{x}: %{y}<extra></extra>"
+            )
+        )
+
+        fig.add_trace(
+            go.Bar(
+                name="After",
+                x=hotspot_summary["Hotspot Category"],
+                y=hotspot_summary["After"],
+                marker_color="#4F7D50",
+                hovertemplate="<b>After</b><br>%{x}: %{y}<extra></extra>"
+            )
         )
 
         fig.update_layout(
+            barmode="group",
             height=430,
-            yaxis_title="Number of Pixels"
+            template="plotly_white",
+            xaxis_title="",
+            yaxis_title="Number of Pixels",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="#fffdf9",
+            font_color="#2f1d1a",
+            legend=dict(
+                orientation="h",
+                y=1.02,
+                x=0.5,
+                xanchor="center"
+            )
+        )
+
+        fig.update_xaxes(
+            gridcolor="#f0e0d7"
+        )
+
+        fig.update_yaxes(
+            gridcolor="#f0e0d7"
         )
 
         st.plotly_chart(
-            style_chart(fig),
-            use_container_width=True
+            fig,
+            use_container_width=True,
+            config={
+                "displaylogo": False,
+                "displayModeBar": False
+            }
         )
 
         st.markdown("---")
@@ -1886,8 +1947,8 @@ elif page == "AI Cooling Intervention Simulator":
                     "Temperature Reduction (°C)",
                     "Maximum LST Before (°C)",
                     "Maximum LST After (°C)",
-                    "Hotspots Before",
-                    "Hotspots After",
+                    "Priority Hotspots Before",
+                    "Priority Hotspots After",
                     "Overall Improvement (%)"
                 ],
                 "Value": [
@@ -1937,28 +1998,26 @@ elif page == "AI Cooling Intervention Simulator":
 
         st.info(
             """
-### AI Decision Support Disclaimer
+###  AI Decision Support Disclaimer
 
-Predictions are AI-based decision-support estimates generated using the
-trained XGBoost Urban Heat Prediction model.
+Predictions are generated using the trained **XGBoost Urban Heat Prediction Model** and are intended to support urban heat mitigation planning.
 
-Actual cooling performance depends on:
+Actual cooling performance may vary depending on:
 
-• implementation quality
+• Quality of intervention implementation
 
-• environmental conditions
+• Local environmental and climatic conditions
 
-• land availability
+• Land availability and urban constraints
 
-• engineering feasibility
+• Engineering feasibility
 
-• maintenance practices
+• Long-term maintenance practices
 
-• climatic variability
+• Site-specific characteristics
 
-The simulator is intended to support municipal planning and urban
-heat mitigation decisions and should not replace detailed engineering
-or environmental assessments.
+This simulator is designed as an **AI-assisted decision-support tool** for municipal authorities, planners, and researchers. Results should be interpreted alongside field observations, engineering studies, and local planning guidelines before implementation.
+
 """
         )
 
@@ -1973,7 +2032,7 @@ Adjust the intervention sliders and click
 to generate a real-time AI prediction using the trained XGBoost model.
 """
         )
-            # ==========================================================
+                # ==========================================================
         # ADDITIONAL ANALYTICS
         # ==========================================================
 
@@ -2000,29 +2059,49 @@ to generate a real-time AI prediction using the trained XGBoost model.
             }
         )
 
-        fig = px.bar(
-            effectiveness_df,
-            x="Intervention",
-            y="Selected (%)",
-            color="Selected (%)",
-            color_continuous_scale=[
-                "#F7B733",
-                "#FF7A1A",
-                "#E44720",
-                "#4F7D50"
-            ],
-            template="plotly_white"
+        colors = [
+            "#4F7D50",
+            "#6A994E",
+            "#FF7A1A",
+            "#F7B733",
+            "#E44720"
+        ]
+
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Bar(
+                x=effectiveness_df["Intervention"],
+                y=effectiveness_df["Selected (%)"],
+                marker_color=colors,
+                text=effectiveness_df["Selected (%)"],
+                texttemplate="%{text}%",
+                textposition="outside",
+                hovertemplate="%{x}<br>%{y}%<extra></extra>"
+            )
         )
 
         fig.update_layout(
             height=420,
-            coloraxis_showscale=False,
+            template="plotly_white",
+            showlegend=False,
             xaxis_title="",
-            yaxis_title="Selected Percentage"
+            yaxis_title="Selected Percentage",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="#fffdf9",
+            font_color="#2f1d1a"
+        )
+
+        fig.update_xaxes(
+            gridcolor="#f0e0d7"
+        )
+
+        fig.update_yaxes(
+            gridcolor="#f0e0d7"
         )
 
         st.plotly_chart(
-            style_chart(fig),
+            fig,
             use_container_width=True
         )
 
@@ -2077,7 +2156,7 @@ to generate a real-time AI prediction using the trained XGBoost model.
 
 elif page == "Model Validation":
 
-    st.header("Model Validation")
+    st.header("📈Model Validation")
 
     st.markdown(
         """
@@ -2133,12 +2212,12 @@ elif page == "Model Validation":
 # ==================================================
 elif page == "About Project":
 
-    st.header("About the Project")
+    st.header("ℹ️ About the Project")
 
     st.markdown(
         """
         <div class="section-panel">
-            <div class="section-title">Urban Heat Mitigation and Cooling Strategy Optimization</div>
+            <div class="section-title">Urban Heat Detection, Prediction & AI Cooling Intervention Planning</div>
             This project develops an AI/ML-powered geospatial decision-support system for
             Chhatrapati Sambhajinagar. It integrates satellite-derived NDVI, NDBI, LST,
             elevation, population, and land-cover information to detect heat-stress hotspots,
@@ -2179,7 +2258,7 @@ elif page == "About Project":
     st.markdown(
         """
         <div class="risk-note">
-            <b>Limitations:</b> satellite-derived LST is not the same as near-surface air
+            <b>Limitations:</b> Satellite-derived LST is not the same as near-surface air
             temperature. Population is used as an exposure proxy, and scenario outputs are
             decision-support estimates. Field validation and local feasibility assessment are
             required before implementation.
@@ -2208,7 +2287,7 @@ st.markdown(
     """
     <div class="footer-text">
         Team AstroByte | Bharatiya Antariksh Hackathon 2026 |
-        Urban Heat Mitigation and Cooling Strategy Optimization
+        Urban Heat Detection, Prediction & AI Cooling Intervention Planning
     </div>
     """,
     unsafe_allow_html=True
